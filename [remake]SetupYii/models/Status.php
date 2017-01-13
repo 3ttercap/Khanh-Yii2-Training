@@ -12,11 +12,14 @@ use Yii;
  * @property integer $permissions
  * @property integer $created_at
  * @property integer $updated_at
+ * @property integer $created_by
+ *
+ * @property User $createdBy
  */
 class Status extends \yii\db\ActiveRecord
 {
-    const PERMISSIONS_PUBLIC = 20;
     const PERMISSIONS_PRIVATE = 10;
+    const PERMISSIONS_PUBLIC = 20;
 
     /**
      * @inheritdoc
@@ -34,7 +37,8 @@ class Status extends \yii\db\ActiveRecord
         return [
             [['message', 'created_at', 'updated_at'], 'required'],
             [['message'], 'string'],
-            [['permissions', 'created_at', 'updated_at'], 'integer'],
+            [['permissions', 'created_at', 'updated_at', 'created_by'], 'integer'],
+            [['created_by'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['created_by' => 'id']],
         ];
     }
 
@@ -44,27 +48,31 @@ class Status extends \yii\db\ActiveRecord
     public function attributeLabels()
     {
         return [
-            'id' => 'ID',
-            'message' => 'Message',
-            'permissions' => 'Permissions',
-            'created_at' => 'Created At',
-            'updated_at' => 'Updated At',
+            'id' => Yii::t('app', 'ID'),
+            'message' => Yii::t('app', 'Message'),
+            'permissions' => Yii::t('app', 'Permissions'),
+            'created_at' => Yii::t('app', 'Created At'),
+            'updated_at' => Yii::t('app', 'Updated At'),
+            'created_by' => Yii::t('app', 'Created By'),
         ];
     }
 
     /**
-     * @return int
+     * @return \yii\db\ActiveQuery
      */
-    public function getPermissions()
+    public function getCreatedBy()
     {
+        return $this->hasOne(User::className(), ['id' => 'created_by']);
+    }
+
+    public function getPermissions() {
         return array(self::PERMISSIONS_PUBLIC=>'Public', self::PERMISSIONS_PRIVATE=>'Private');
     }
 
-    public function getPermissionsLabel($permissions) {
-        if ($permissions == self::PERMISSIONS_PUBLIC) {
+    public function getPermissionsLabel ($permissions) {
+        if ($permissions == self::PERMISSIONS_PUBLIC)
             return 'Public';
-        } else {
+        else
             return 'Private';
-        }
     }
 }

@@ -5,6 +5,9 @@ namespace app\controllers;
 use Yii;
 use app\models\Status;
 use app\models\StatusSearch;
+use app\models\User;
+use app\components\AccessRule;
+use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
@@ -23,10 +26,58 @@ class StatusController extends Controller
             'verbs' => [
                 'class' => VerbFilter::className(),
                 'actions' => [
-                    'delete' => ['POST'],
+                    'delete' => ['post'],
+                ],
+            ],
+            'access' => [
+                'class' => AccessControl::className(),
+                // We will override the default rule config with the new AccessRule class
+                'ruleConfig' => [
+                    'class' => AccessRule::className(),
+                ],
+                'only' => ['index', 'create', 'update', 'delete'],
+                'rules' => [
+                    [
+                        'actions' => ['index', 'create'],
+                        'allow' => true,
+                        // Allow users, moderators, admins to create
+                        'roles' => [
+                            User::ROLE_USER,
+                            User::ROLE_MODERATOR,
+                            User::ROLE_ADMIN
+                        ],
+                    ],
+                    // allow authenticated user
+                    [
+                        'actions' => ['update'],
+                        'allow' => true,
+                        // Allow moderators and admins to update
+                        'roles' => [
+                            User::ROLE_MODERATOR,
+                            User::ROLE_ADMIN
+                        ],
+                    ],
+                    [
+                        'actions' => ['delete'],
+                        'allow' => true,
+                        // Allow admins to delete
+                        'roles' => [
+                            User::ROLE_ADMIN
+                        ],
+                    ],
+                    // everything else is denied
                 ],
             ],
         ];
+
+//        return [
+//            'verbs' => [
+//                'class' => VerbFilter::className(),
+//                'actions' => [
+//                    'delete' => ['POST'],
+//                ],
+//            ],
+//        ];
     }
 
     /**
@@ -63,19 +114,10 @@ class StatusController extends Controller
      */
     public function actionCreate()
     {
-//        $model = new Status();
-//
-//        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-//            return $this->redirect(['view', 'id' => $model->id]);
-//        } else {
-//            return $this->render('create', [
-//                'model' => $model,
-//            ]);
-//        }
-
-        $model = new Status;
+        $model = new Status();
 
         if ($model->load(Yii::$app->request->post())) {
+            $model->created_by = Yii::$app->user->getId();
             $model->created_at = time();
             $model->updated_at = time();
             if ($model->save()) {
@@ -85,6 +127,14 @@ class StatusController extends Controller
         return $this->render('create', [
             'model' => $model,
         ]);
+
+//        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+//            return $this->redirect(['view', 'id' => $model->id]);
+//        } else {
+//            return $this->render('create', [
+//                'model' => $model,
+//            ]);
+//        }
     }
 
     /**
@@ -134,4 +184,6 @@ class StatusController extends Controller
             throw new NotFoundHttpException('The requested page does not exist.');
         }
     }
+
+
 }
